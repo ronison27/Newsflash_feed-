@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FlashFeed - Real-Time News</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --primary-dark: #1557b0;
+            --accent: #ff3d00;
+            --bg: #f0f2f5;
+            --card: #ffffff;
+            --text: #1a1a2e;
+            --text-light: #65676b;
+            --border: #e4e6eb;
+            --shadow: rgba(0,0,0,0.08);
+            --breaking: #ff1744;
+        }
+        .dark-mode {
+            --bg: #18191a;
+            --card: #242526;
+            --text: #e4e6eb;
+            --text-light: #b0b3b8;
+            --border: #3a3b3c;
+            --shadow: rgba(0,0,0,0.3);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            transition: background 0.3s, color 0.3s;
+        }
+        .top-header {
+            background: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .app-logo {
+            font-size: 24px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: -0.5px;
+        }
+        .header-actions { display: flex; gap: 10px; }
+        .icon-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+        .icon-btn:active { transform: scale(0.9); }
+
+        /* Breaking Ticker */
+        .breaking-ticker {
+            background: var(--breaking);
+            color: white;
+            padding: 10px 15px;
+            font-size: 13px;
+            font-weight: 600;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .ticker-wrap { display: inline-block; animation: ticker 35s linear infinite; }
+        @keyframes ticker {
+            0% { transform: translateX(100vw); }
+            100% { transform: translateX(-100%); }
+        }
+        .breaking-badge {
+            background: white;
+            color: var(--breaking);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 800;
+            margin-right: 10px;
+        }
+
+        /* Search */
+        .search-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 15px 20px 5px;
+        }
+        .search-bar {
+            display: flex;
+            background: var(--card);
+            border-radius: 25px;
+            padding: 5px;
+            box-shadow: 0 2px 8px var(--shadow);
+            border: 2px solid var(--border);
+        }
+        .search-bar input {
+            flex: 1;
+            border: none;
+            padding: 12px 15px;
+            font-size: 15px;
+            background: transparent;
+            color: var(--text);
+            outline: none;
+        }
+        .search-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Category Tabs */
+        .category-tabs {
+            display: flex;
+            overflow-x: auto;
+            gap: 8px;
+            padding: 15px 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            scrollbar-width: none;
+        }
+        .category-tabs::-webkit-scrollbar { display: none; }
+        .cat-tab {
+            padding: 8px 18px;
+            background: var(--card);
+            border: 2px solid var(--border);
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            transition: 0.3s;
+            color: var(--text);
+        }
+        .cat-tab.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* News Container */
+        .news-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 20px 100px;
+        }
+        .section-label {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 20px 0 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text);
+        }
+
+        /* Featured Card */
+        .featured-card {
+            background: var(--card);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px var(--shadow);
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            animation: fadeIn 0.4s;
+        }
+        .featured-card:active { transform: scale(0.98); }
+        .featured-img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: #ccc;
+            display: block;
+        }
+        .featured-content { padding: 18px; }
+        .featured-category {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        .featured-title {
+            font-size: 20px;
+            font-weight: 700;
+            line-height: 1.3;
+            margin-bottom: 10px;
+            color: var(--text);
+        }
+        .featured-desc {
+            font-size: 14px;
+            color: var(--text-light);
+            line-height: 1.5;
+            margin-bottom: 12px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .news-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-light);
+        }
+        .source-info { display: flex; align-items: center; gap: 6px; }
+        .source-dot { width: 6px; height: 6px; background: var(--primary); border-radius: 50%; }
+        .card-actions { display: flex; gap: 5px; }
+        .card-action-btn {
+            background: none;
+            border: none;
+            color: var(--text-light);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+        }
+        .card-action-btn.bookmarked { color: var(--primary); }
+
+        /* Small Card */
+        .small-card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 12px;
+            display: flex;
+            gap: 15px;
+            box-shadow: 0 2px 8px var(--shadow);
+            cursor: pointer;
+            transition: transform 0.2s;
+            animation: fadeIn 0.4s;
+        }
+        .small-card:active { transform: scale(0.98); }
+        .small-card-img {
+            width: 100px;
+            height: 100px;
+            border-radius: 12px;
+            object-fit: cover;
+            background: #ccc;
+            flex-shrink: 0;
+        }
+        .small-card-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .small-card-title {
+            font-size: 15px;
+            font-weight: 600;
+            line-height: 1.3;
+            color: var(--text);
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .small-card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 8px;
+        }
+
+        /* Loading */
+        .loading { text-align: center; padding: 40px; color: var(--text-light); }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-light); }
+        .empty-icon { font-size: 64px; margin-bottom: 15px; }
+
+        /* Article Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(5px);
+            z-index: 200;
+        }
+        .modal-overlay.active { display: block; }
+        .article-modal {
+            position: fixed;
+            top: 5%; left: 50%;
+            transform: translateX(-50%);
+            width: 95%; max-width: 600px;
+            max-height: 90vh;
+            background: var(--card);
+            border-radius: 20px;
+            overflow-y: auto;
+            z-index: 201;
+            animation: slideUp 0.3s;
+        }
+        @keyframes slideUp {
+            from { transform: translateX(-50%) translateY(40px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+        .modal-img { width: 100%; height: 220px; object-fit: cover; display: block; }
+        .modal-body { padding: 20px; }
+        .modal-title { font-size: 20px; font-weight: 700; line-height: 1.3; margin-bottom: 12px; color: var(--text); }
+        .modal-desc { font-size: 15px; line-height: 1.7; color: var(--text-light); margin-bottom: 20px; }
+        .modal-close {
+            position: absolute; top: 12px; right: 12px;
+            background: rgba(0,0,0,0.5);
+            color: white; border: none;
+            width: 34px; height: 34px;
+            border-radius: 50%; font-size: 16px;
+            cursor: pointer; z-index: 202;
+        }
+        .read-more-btn {
+            display: block; width: 100%; padding: 14px;
+            background: var(--primary); color: white;
+            border: none; border-radius: 12px;
+            font-size: 15px; font-weight: 600;
+            cursor: pointer; text-align: center;
+            text-decoration: none;
+        }
+
+        /* Pages */
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* Bottom Nav */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: var(--card);
+            display: flex; justify-content: space-around;
+            padding: 10px 0;
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 10px var(--shadow);
+            z-index: 100;
+        }
+        .nav-item {
+            display: flex; flex-direction: column;
+            align-items: center; gap: 4px;
+            font-size: 10px; color: var(--text-light);
+            cursor: pointer; padding: 5px 15px;
+            border: none; background: none; transition: 0.2s;
+        }
+        .nav-item.active { color: var(--primary); }
+        .nav-item .nav-icon { font-size: 22px; }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 80px; left: 50%;
+            transform: translateX(-50%);
+            background: #333; color: white;
+            padding: 12px 24px; border-radius: 25px;
+            font-size: 14px; font-weight: 500;
+            z-index: 300; display: none;
+            animation: toastIn 0.3s;
+        }
+        .toast.show { display: block; }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(15px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        /* Error banner */
+        .error-banner {
+            background: #fff3cd; color: #856404;
+            border: 1px solid #ffc107;
+            border-radius: 10px; padding: 12px 16px;
+            margin: 15px 20px; font-size: 13px;
+            max-width: 760px; margin-left: auto; margin-right: auto;
+        }
+    </style>
+</head>
+<body>
+
+<div class="top-header">
+    <div class="header-row">
+        <div class="app-logo">⚡ FlashFeed</div>
+        <div class="header-actions">
+            <button class="icon-btn" onclick="toggleDarkMode()" title="Toggle dark mode">🌙</button>
+            <button class="icon-btn" onclick="refreshNews()" title="Refresh">🔄</button>
+        </div>
+    </div>
+</div>
+
+<!-- Breaking News Ticker -->
+<div class="breaking-ticker" id="tickerBar">
+    <span class="ticker-wrap" id="tickerText">
+        <span class="breaking-badge">BREAKING</span> Loading headlines...
+    </span>
+</div>
+
+<!-- HOME PAGE -->
+<div class="page active" id="homePage">
+    <div class="search-container">
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Search news..." autocomplete="off">
+            <button class="search-btn" onclick="searchNews()">Search</button>
+        </div>
+    </div>
+
+    <div class="category-tabs" id="categoryTabs">
+        <button class="cat-tab active" data-cat="general" onclick="loadCategory(this,'general')">🔥 Top</button>
+        <button class="cat-tab" data-cat="business" onclick="loadCategory(this,'business')">💼 Business</button>
+        <button class="cat-tab" data-cat="technology" onclick="loadCategory(this,'technology')">💻 Tech</button>
+        <button class="cat-tab" data-cat="sports" onclick="loadCategory(this,'sports')">⚽ Sports</button>
+        <button class="cat-tab" data-cat="health" onclick="loadCategory(this,'health')">🏥 Health</button>
+        <button class="cat-tab" data-cat="science" onclick="loadCategory(this,'science')">🔬 Science</button>
+        <button class="cat-tab" data-cat="entertainment" onclick="loadCategory(this,'entertainment')">🎬 Entertainment</button>
+    </div>
+
+    <div id="errorBanner" style="display:none;" class="error-banner"></div>
+    <div class="news-container" id="newsContainer">
+        <div class="loading"><div class="spinner"></div>Loading latest news...</div>
+    </div>
+</div>
+
+<!-- BOOKMARKS PAGE -->
+<div class="page" id="bookmarksPage">
+    <div class="news-container">
+        <div class="section-label">🔖 Saved Articles</div>
+        <div id="bookmarksList"></div>
+    </div>
+</div>
+
+<!-- SETTINGS PAGE -->
+<div class="page" id="settingsPage">
+    <div class="news-container" style="padding-top:20px;">
+        <div class="section-label">⚙️ Settings</div>
+        <div style="background:var(--card);border-radius:16px;padding:20px;margin-bottom:15px;box-shadow:0 2px 8px var(--shadow);">
+            <h3 style="margin-bottom:15px;">🎨 Appearance</h3>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+                <span>Dark Mode</span>
+                <button onclick="toggleDarkMode()" style="background:var(--primary);color:white;border:none;padding:8px 20px;border-radius:20px;cursor:pointer;">Toggle</button>
+            </div>
+        </div>
+        <div style="background:var(--card);border-radius:16px;padding:20px;margin-bottom:15px;box-shadow:0 2px 8px var(--shadow);">
+            <h3 style="margin-bottom:15px;">🌍 News Country</h3>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;">
+                <span>Country</span>
+                <select id="countrySelect" onchange="changeCountry()" style="padding:8px 15px;border-radius:10px;border:2px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;">
+                    <option value="us">🇺🇸 US</option>
+                    <option value="gb">🇬🇧 UK</option>
+                    <option value="in" selected>🇮🇳 India</option>
+                    <option value="au">🇦🇺 Australia</option>
+                    <option value="ca">🇨🇦 Canada</option>
+                    <option value="de">🇩🇪 Germany</option>
+                    <option value="fr">🇫🇷 France</option>
+                    <option value="jp">🇯🇵 Japan</option>
+                </select>
+            </div>
+        </div>
+        <div style="background:var(--card);border-radius:16px;padding:20px;box-shadow:0 2px 8px var(--shadow);">
+            <h3 style="margin-bottom:10px;">ℹ️ About</h3>
+            <p style="color:var(--text-light);line-height:1.7;font-size:14px;">
+                <strong>FlashFeed v2.0</strong><br>
+                Real-time news powered by GNews API.<br>
+                Built with ❤️ by Ronison V
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Article Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+    <div class="article-modal" onclick="event.stopPropagation()">
+        <button class="modal-close" onclick="closeModal()">✕</button>
+        <img class="modal-img" id="modalImg" src="" alt="" onerror="this.style.display='none'">
+        <div class="modal-body">
+            <span class="featured-category" id="modalCategory"></span>
+            <h2 class="modal-title" id="modalTitle"></h2>
+            <div class="news-meta" style="margin-bottom:15px;">
+                <span class="source-info">
+                    <span class="source-dot"></span>
+                    <span id="modalSource"></span>
+                </span>
+                <span id="modalDate"></span>
+            </div>
+            <p class="modal-desc" id="modalDesc"></p>
+            <a class="read-more-btn" id="modalLink" href="#" target="_blank" rel="noopener">Read Full Article →</a>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="bottom-nav">
+    <button class="nav-item active" id="nav-home" onclick="switchPage('home',this)">
+        <span class="nav-icon">🏠</span>Home
+    </button>
+    <button class="nav-item" id="nav-bookmarks" onclick="switchPage('bookmarks',this)">
+        <span class="nav-icon">🔖</span>Saved
+    </button>
+    <button class="nav-item" id="nav-settings" onclick="switchPage('settings',this)">
+        <span class="nav-icon">⚙️</span>Settings
+    </button>
+</div>
+
+<script>
+    // ===== CONFIG =====
+    const API_KEY = 'efe6160020324e14303c7543da1c6e1e';
+    const BASE    = 'https://gnews.io/api/v4';
+
+    let currentCategory = 'general';
+    let currentCountry  = localStorage.getItem('ff_country') || 'in';
+    let bookmarks       = JSON.parse(localStorage.getItem('ff_bookmarks') || '[]');
+    let allArticles     = [];
+
+    // Set saved country in selector
+    document.getElementById('countrySelect').value = currentCountry;
+
+    // ===== CATEGORY LABELS =====
+    const catLabels = {
+        general:'🔥 Top News', business:'💼 Business',
+        technology:'💻 Technology', sports:'⚽ Sports',
+        health:'🏥 Health', science:'🔬 Science',
+        entertainment:'🎬 Entertainment'
+    };
+
+    // ===== INIT =====
+    loadNews();
+
+    // ===== LOAD NEWS FROM GNEWS =====
+    async function loadNews() {
+        showLoading();
+        hideError();
+        try {
+            const url = `${BASE}/top-headlines?category=${currentCategory}&country=${currentCountry}&max=10&apikey=${API_KEY}`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            if (data.errors) throw new Error(data.errors.join(', '));
+            if (!data.articles || data.articles.length === 0) throw new Error('No articles returned');
+            allArticles = data.articles.map(a => ({ ...a, category: currentCategory }));
+            renderNews(allArticles);
+            updateTicker(allArticles);
+        } catch (err) {
+            console.error('News load error:', err);
+            showError(`Could not load live news: ${err.message}. Check your API key or try refreshing.`);
+            renderNews([]);
+        }
+    }
+
+    // ===== SEARCH =====
+    async function searchNews() {
+        const q = document.getElementById('searchInput').value.trim();
+        if (!q) return;
+        showLoading();
+        hideError();
+        try {
+            const url = `${BASE}/search?q=${encodeURIComponent(q)}&lang=en&max=10&apikey=${API_KEY}`;
+            const res = await fetch(url);
+            const data = await res.json();
+            if (!data.articles || data.articles.length === 0) {
+                showError(`No results found for "${q}".`);
+                renderNews([]);
+                return;
+            }
+            allArticles = data.articles.map(a => ({ ...a, category: 'general' }));
+            renderNews(allArticles);
+            showToast(`Found ${allArticles.length} results for "${q}" 🔍`);
+        } catch (err) {
+            showError('Search failed. Please try again.');
+            renderNews([]);
+        }
+    }
+
+    document.getElementById('searchInput').addEventListener('keypress', e => {
+        if (e.key === 'Enter') searchNews();
+    });
+
+    // ===== RENDER =====
+    function renderNews(articles) {
+        const container = document.getElementById('newsContainer');
+        if (!articles || articles.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📭</div>
+                    <div style="font-size:18px;font-weight:600;">No news found</div>
+                    <div style="margin-top:8px;color:var(--text-light);">Try a different category or check your connection</div>
+                </div>`;
+            return;
+        }
+
+        let html = '';
+        const featured = articles[0];
+        const featuredImg = featured.image || `https://picsum.photos/seed/${featured.title.length}/800/400`;
+
+        html += `
+            <div class="section-label">🔥 Top Story</div>
+            <div class="featured-card" onclick='openArticle(${safeJSON(featured)})'>
+                <img class="featured-img" src="${featuredImg}" alt="" onerror="this.src='https://picsum.photos/800/400?grayscale'">
+                <div class="featured-content">
+                    <span class="featured-category">${catLabels[featured.category] || '📰 News'}</span>
+                    <h3 class="featured-title">${esc(featured.title)}</h3>
+                    <p class="featured-desc">${esc(featured.description || '')}</p>
+                    <div class="news-meta">
+                        <div class="source-info">
+                            <span class="source-dot"></span>
+                            <span>${esc(featured.source?.name || 'News')}</span>
+                            <span>• ${timeAgo(featured.publishedAt)}</span>
+                        </div>
+                        <div class="card-actions">
+                            <button class="card-action-btn ${isBookmarked(featured.title)?'bookmarked':''}"
+                                onclick="event.stopPropagation();toggleBookmark(${safeJSON(featured)})">
+                                ${isBookmarked(featured.title)?'🔖':'📑'}
+                            </button>
+                            <button class="card-action-btn"
+                                onclick="event.stopPropagation();shareArticle('${esc(featured.title)}','${featured.url}')">📤</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
+        if (articles.length > 1) {
+            html += '<div class="section-label">📰 Latest News</div>';
+            for (let i = 1; i < articles.length; i++) {
+                const a = articles[i];
+                const img = a.image || `https://picsum.photos/seed/${i + a.title.length}/200/200`;
+                html += `
+                    <div class="small-card" onclick='openArticle(${safeJSON(a)})'>
+                        <img class="small-card-img" src="${img}" alt="" onerror="this.src='https://picsum.photos/200/200?grayscale'">
+                        <div class="small-card-content">
+                            <div class="small-card-title">${esc(a.title)}</div>
+                            <div class="small-card-meta">
+                                <div class="source-info">
+                                    <span class="source-dot"></span>
+                                    <span>${esc(a.source?.name || 'News')} • ${timeAgo(a.publishedAt)}</span>
+                                </div>
+                                <button class="card-action-btn ${isBookmarked(a.title)?'bookmarked':''}"
+                                    onclick="event.stopPropagation();toggleBookmark(${safeJSON(a)})">
+                                    ${isBookmarked(a.title)?'🔖':'📑'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+        }
+        container.innerHTML = html;
+    }
+
+    // ===== CATEGORY =====
+    function loadCategory(btn, category) {
+        currentCategory = category;
+        document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        loadNews();
+    }
+
+    // ===== COUNTRY =====
+    function changeCountry() {
+        currentCountry = document.getElementById('countrySelect').value;
+        localStorage.setItem('ff_country', currentCountry);
+        loadNews();
+        showToast('Country updated 🌍');
+    }
+
+    // ===== ARTICLE MODAL =====
+    function openArticle(article) {
+        document.getElementById('modalImg').src = article.image || '';
+        document.getElementById('modalImg').style.display = article.image ? 'block' : 'none';
+        document.getElementById('modalCategory').textContent = catLabels[article.category] || '📰 News';
+        document.getElementById('modalTitle').textContent = article.title;
+        document.getElementById('modalSource').textContent = article.source?.name || 'News';
+        document.getElementById('modalDate').textContent = timeAgo(article.publishedAt);
+        document.getElementById('modalDesc').textContent = article.description || 'No description available.';
+        document.getElementById('modalLink').href = article.url || '#';
+        document.getElementById('modalOverlay').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+        document.getElementById('modalOverlay').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    // ===== BOOKMARKS =====
+    function toggleBookmark(article) {
+        const idx = bookmarks.findIndex(b => b.title === article.title);
+        if (idx > -1) {
+            bookmarks.splice(idx, 1);
+            showToast('Removed from saved 🗑️');
+        } else {
+            bookmarks.push(article);
+            showToast('Saved! 🔖');
+        }
+        localStorage.setItem('ff_bookmarks', JSON.stringify(bookmarks));
+        renderNews(allArticles);
+    }
+
+    function isBookmarked(title) {
+        return bookmarks.some(b => b.title === title);
+    }
+
+    function renderBookmarks() {
+        const container = document.getElementById('bookmarksList');
+        if (bookmarks.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">🔖</div>
+                    <div style="font-size:18px;font-weight:600;">No saved articles</div>
+                    <div style="margin-top:8px;">Tap 📑 on any article to save it</div>
+                </div>`;
+            return;
+        }
+        container.innerHTML = bookmarks.map(a => `
+            <div class="small-card" onclick='openArticle(${safeJSON(a)})'>
+                <img class="small-card-img" src="${a.image || 'https://picsum.photos/200/200?grayscale'}" alt="" onerror="this.src='https://picsum.photos/200/200?grayscale'">
+                <div class="small-card-content">
+                    <div class="small-card-title">${esc(a.title)}</div>
+                    <div class="small-card-meta">
+                        <div class="source-info">
+                            <span class="source-dot"></span>
+                            <span>${esc(a.source?.name || 'News')}</span>
+                        </div>
+                        <button class="card-action-btn bookmarked"
+                            onclick="event.stopPropagation();toggleBookmark(${safeJSON(a)})">🔖</button>
+                    </div>
+                </div>
+            </div>`).join('');
+    }
+
+    // ===== SHARE =====
+    function shareArticle(title, url) {
+        const text = `📰 ${title}\n\nRead more: ${url}\n\nShared via FlashFeed ⚡`;
+        if (navigator.share) {
+            navigator.share({ title, text, url }).catch(() => {});
+        } else {
+            navigator.clipboard?.writeText(text).then(() => showToast('Link copied! 📋'));
+        }
+    }
+
+    // ===== TICKER =====
+    function updateTicker(articles) {
+        if (!articles || articles.length === 0) return;
+        const headlines = articles.map(a => a.title).join('  •  ');
+        document.getElementById('tickerText').innerHTML =
+            `<span class="breaking-badge">BREAKING</span> ${headlines}`;
+    }
+
+    // ===== NAVIGATION =====
+    function switchPage(page, btn) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById(page + 'Page').classList.add('active');
+        btn.classList.add('active');
+        if (page === 'bookmarks') renderBookmarks();
+    }
+
+    // ===== DARK MODE =====
+    function toggleDarkMode() {
+        document.body.classList.toggle('dark-mode');
+        const dark = document.body.classList.contains('dark-mode');
+        localStorage.setItem('ff_darkmode', dark);
+        showToast(dark ? '🌙 Dark mode on' : '☀️ Light mode on');
+    }
+    if (localStorage.getItem('ff_darkmode') === 'true') document.body.classList.add('dark-mode');
+
+    // ===== REFRESH =====
+    function refreshNews() {
+        showToast('Refreshing... ⚡');
+        loadNews();
+    }
+
+    // ===== HELPERS =====
+    function showLoading() {
+        document.getElementById('newsContainer').innerHTML =
+            '<div class="loading"><div class="spinner"></div>Loading latest news...</div>';
+    }
+
+    function showError(msg) {
+        const el = document.getElementById('errorBanner');
+        el.textContent = '⚠️ ' + msg;
+        el.style.display = 'block';
+    }
+
+    function hideError() {
+        document.getElementById('errorBanner').style.display = 'none';
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    function timeAgo(str) {
+        const diff = Math.floor((Date.now() - new Date(str)) / 1000);
+        if (diff < 60) return 'Just now';
+        if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+        if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+        return Math.floor(diff / 86400) + 'd ago';
+    }
+
+    function esc(str) {
+        return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function safeJSON(obj) {
+        return JSON.stringify(obj).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+    }
+</script>
+</body>
+</html>
